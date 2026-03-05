@@ -59,7 +59,11 @@ func main() {
 		Method:      http.MethodGet,
 		Path:        "/healthz",
 		Tags:        []string{"Health"},
-	}, func(_ context.Context, _ *struct{}) (*struct{ Body struct{ Status string `json:"status"` } }, error) {
+	}, func(_ context.Context, _ *struct{}) (*struct {
+		Body struct {
+			Status string `json:"status"`
+		}
+	}, error) {
 		out := &struct {
 			Body struct {
 				Status string `json:"status"`

@@ -10,34 +10,6 @@ import (
 	jwtutil "github.com/lesquel/oda-shared/jwt"
 )
 
-const (
-	accessTokenTTL  = 15 * time.Minute
-	refreshTokenTTL = 30 * 24 * time.Hour
-)
-
-// AuthUseCase defines all auth/user mutation operations.
-type AuthUseCase interface {
-	Register(req *domain.RegisterRequest) (*domain.AuthResponse, error)
-	Login(req *domain.LoginRequest) (*domain.AuthResponse, error)
-	Refresh(rawToken string) (*domain.AuthResponse, error)
-	Logout(rawToken string) error
-	GetProfile(userID string) (*domain.User, error)
-	UpdateProfile(userID string, req *domain.UpdateProfileRequest) (*domain.User, error)
-	ChangePassword(userID string, req *domain.ChangePasswordRequest) error
-	GetPublicProfile(username string) (*domain.User, error)
-	SearchUsers(query string) ([]*domain.User, error)
-}
-
-type authUseCase struct {
-	userRepo  domain.UserRepository
-	rtRepo    domain.RefreshTokenRepository
-	jwtSecret string
-}
-
-func NewAuthUseCase(userRepo domain.UserRepository, rtRepo domain.RefreshTokenRepository, jwtSecret string) AuthUseCase {
-	return &authUseCase{userRepo: userRepo, rtRepo: rtRepo, jwtSecret: jwtSecret}
-}
-
 func (uc *authUseCase) Register(req *domain.RegisterRequest) (*domain.AuthResponse, error) {
 	if existing, _ := uc.userRepo.FindByEmail(req.Email); existing != nil {
 		return nil, errors.New("email already registered")
@@ -100,71 +72,7 @@ func (uc *authUseCase) Logout(rawToken string) error {
 	return uc.rtRepo.DeleteByToken(rawToken)
 }
 
-func (uc *authUseCase) GetProfile(userID string) (*domain.User, error) {
-	user, err := uc.userRepo.FindByID(userID)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-	return user, nil
-}
-
-func (uc *authUseCase) UpdateProfile(userID string, req *domain.UpdateProfileRequest) (*domain.User, error) {
-	user, err := uc.userRepo.FindByID(userID)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-
-	if req.Username != "" {
-		user.Username = req.Username
-	}
-	user.Bio = req.Bio
-	if req.AvatarURL != "" {
-		user.AvatarURL = req.AvatarURL
-	}
-
-	if err := uc.userRepo.Update(user); err != nil {
-		return nil, errors.New("failed to update profile")
-	}
-	return user, nil
-}
-
-func (uc *authUseCase) ChangePassword(userID string, req *domain.ChangePasswordRequest) error {
-	user, err := uc.userRepo.FindByID(userID)
-	if err != nil {
-		return errors.New("user not found")
-	}
-
-	if !hasher.CheckPassword(user.PasswordHash, req.OldPassword) {
-		return errors.New("la contraseña actual es incorrecta")
-	}
-
-	newHash, err := hasher.HashPassword(req.NewPassword)
-	if err != nil {
-		return errors.New("failed to hash password")
-	}
-
-	user.PasswordHash = newHash
-	return uc.userRepo.Update(user)
-}
-
-func (uc *authUseCase) GetPublicProfile(username string) (*domain.User, error) {
-	user, err := uc.userRepo.FindByUsername(username)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-	return user, nil
-}
-
-func (uc *authUseCase) SearchUsers(query string) ([]*domain.User, error) {
-	users, err := uc.userRepo.Search(query, 20, 0)
-	if err != nil {
-		return nil, errors.New("failed to search users")
-	}
-	return users, nil
-}
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
+// buildAuthResponse creates access + refresh tokens for a user.
 func (uc *authUseCase) buildAuthResponse(user *domain.User) (*domain.AuthResponse, error) {
 	accessToken, err := jwtutil.Generate(user.ID, user.Role, uc.jwtSecret, accessTokenTTL)
 	if err != nil {
