@@ -1,0 +1,7 @@
+**/tmp/
+**/bin/
+**/.air.toml
+**/*_test.go
+**/testdata/
+**/.git
+**/README.md
