@@ -19,7 +19,12 @@ func toAdminPoem(p domain.Poem) domain.AdminPoem {
 	ap := domain.AdminPoem{
 		ID: p.ID, AuthorID: p.AuthorID, Title: p.Title,
 		Content: p.Content, Status: p.Status,
-		LikesCount: p.LikesCount, ViewsCount: p.ViewsCount,
+		ModerationStatus: p.ModerationStatus,
+		ModerationScore:  p.ModerationScore,
+		ModerationReason: p.ModerationReason,
+		ModeratedAt:      p.ModeratedAt,
+		ModeratedBy:      p.ModeratedBy,
+		LikesCount:       p.LikesCount, ViewsCount: p.ViewsCount,
 		CreatedAt: p.CreatedAt,
 	}
 	if p.DeletedAt.Valid {
@@ -34,4 +39,38 @@ func toAdminPoem(p domain.Poem) domain.AdminPoem {
 		}
 	}
 	return ap
+}
+
+func toAdminLike(l domain.Like) domain.AdminLike {
+	al := domain.AdminLike{
+		ID: l.ID, UserID: l.UserID, PoemID: l.PoemID, CreatedAt: l.CreatedAt,
+	}
+	if l.DeletedAt.Valid {
+		t := l.DeletedAt.Time
+		al.DeletedAt = &t
+	}
+	return al
+}
+
+func toAdminBookmark(b domain.Bookmark) domain.AdminBookmark {
+	ab := domain.AdminBookmark{
+		ID: b.ID, UserID: b.UserID, PoemID: b.PoemID, CreatedAt: b.CreatedAt,
+	}
+	if b.DeletedAt.Valid {
+		t := b.DeletedAt.Time
+		ab.DeletedAt = &t
+	}
+	return ab
+}
+
+func toAdminEmotion(t domain.EmotionTag) domain.AdminEmotion {
+	ae := domain.AdminEmotion{
+		ID: t.ID, UserID: t.UserID, PoemID: t.PoemID,
+		EmotionID: t.EmotionID, CreatedAt: t.CreatedAt,
+	}
+	if t.DeletedAt.Valid {
+		tt := t.DeletedAt.Time
+		ae.DeletedAt = &tt
+	}
+	return ae
 }

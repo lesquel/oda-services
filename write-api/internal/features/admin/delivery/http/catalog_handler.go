@@ -14,6 +14,10 @@ type EmotionCatalogListOutput struct {
 	Body []*domain.EmotionCatalog
 }
 
+type GetEmotionCatalogOutput struct {
+	Body domain.EmotionCatalog
+}
+
 type CreateEmotionCatalogInput struct {
 	Body struct {
 		Name        string `json:"name" minLength:"1" maxLength:"50" doc:"Emotion name"`
@@ -39,6 +43,14 @@ func (h *AdminHandler) ListEmotionCatalog(ctx context.Context, _ *struct{}) (*Em
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return &EmotionCatalogListOutput{Body: items}, nil
+}
+
+func (h *AdminHandler) GetEmotionCatalog(ctx context.Context, input *GetByIDInput) (*GetEmotionCatalogOutput, error) {
+	item, err := h.uc.GetEmotionCatalog(input.ID)
+	if err != nil {
+		return nil, huma.NewError(http.StatusNotFound, err.Error())
+	}
+	return &GetEmotionCatalogOutput{Body: *item}, nil
 }
 
 func (h *AdminHandler) CreateEmotionCatalog(ctx context.Context, input *CreateEmotionCatalogInput) (*AdminMessageOutput, error) {
@@ -69,8 +81,24 @@ func (h *AdminHandler) UpdateEmotionCatalog(ctx context.Context, input *UpdateEm
 	return out, nil
 }
 
-func (h *AdminHandler) DeleteEmotionCatalog(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
-	if err := h.uc.DeleteEmotionCatalog(input.ID); err != nil {
+func (h *AdminHandler) SoftDeleteEmotionCatalog(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.SoftDeleteEmotionCatalog(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return nil, nil
+}
+
+func (h *AdminHandler) RestoreEmotionCatalog(ctx context.Context, input *GetByIDInput) (*AdminMessageOutput, error) {
+	if err := h.uc.RestoreEmotionCatalog(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	out := &AdminMessageOutput{}
+	out.Body.Message = "emotion catalog restored"
+	return out, nil
+}
+
+func (h *AdminHandler) PermanentDeleteEmotionCatalog(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.PermanentDeleteEmotionCatalog(input.ID); err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return nil, nil

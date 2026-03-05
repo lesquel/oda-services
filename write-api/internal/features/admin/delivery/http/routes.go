@@ -71,13 +71,32 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-user",
-		Summary:       "Hard-delete a user",
+		Summary:       "Soft-delete a user",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/users/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Users"},
 		Middlewares:   adminMW,
-	}, h.HardDeleteUser)
+	}, h.SoftDeleteUser)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-user",
+		Summary:     "Restore a soft-deleted user",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/users/{id}/restore",
+		Tags:        []string{"Admin / Users"},
+		Middlewares: adminMW,
+	}, h.RestoreUser)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-user",
+		Summary:       "Permanently delete a user",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/users/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Users"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeleteUser)
 
 	// ── Poems ────────────────────────────────────────────────────────────
 
@@ -119,13 +138,61 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-poem",
-		Summary:       "Hard-delete a poem",
+		Summary:       "Soft-delete a poem",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/poems/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Poems"},
 		Middlewares:   adminMW,
-	}, h.HardDeletePoem)
+	}, h.SoftDeletePoem)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-poem",
+		Summary:     "Restore a soft-deleted poem",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/poems/{id}/restore",
+		Tags:        []string{"Admin / Poems"},
+		Middlewares: adminMW,
+	}, h.RestorePoem)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-poem",
+		Summary:       "Permanently delete a poem",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/poems/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Poems"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeletePoem)
+
+	// ── Moderation ───────────────────────────────────────────────────────
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-moderation-queue",
+		Summary:     "List poems pending moderation",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/moderation/queue",
+		Tags:        []string{"Admin / Moderation"},
+		Middlewares: adminMW,
+	}, h.ListModerationQueue)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-moderation-logs",
+		Summary:     "Get moderation logs for a poem",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/moderation/poems/{id}/logs",
+		Tags:        []string{"Admin / Moderation"},
+		Middlewares: adminMW,
+	}, h.GetModerationLogs)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-moderation-action",
+		Summary:     "Approve or reject a poem",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/moderation/poems/{id}/action",
+		Tags:        []string{"Admin / Moderation"},
+		Middlewares: adminMW,
+	}, h.ModerationAction)
 
 	// ── Likes ────────────────────────────────────────────────────────────
 
@@ -139,14 +206,52 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 	}, h.ListLikes)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "admin-get-like",
+		Summary:     "Get a single like by ID",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/likes/{id}",
+		Tags:        []string{"Admin / Likes"},
+		Middlewares: adminMW,
+	}, h.GetLike)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-create-like",
+		Summary:       "Create a like",
+		Method:        http.MethodPost,
+		Path:          "/api/admin/likes",
+		DefaultStatus: http.StatusCreated,
+		Tags:          []string{"Admin / Likes"},
+		Middlewares:   adminMW,
+	}, h.CreateLike)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-like",
-		Summary:       "Hard-delete a like",
+		Summary:       "Soft-delete a like",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/likes/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Likes"},
 		Middlewares:   adminMW,
-	}, h.HardDeleteLike)
+	}, h.SoftDeleteLike)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-like",
+		Summary:     "Restore a soft-deleted like",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/likes/{id}/restore",
+		Tags:        []string{"Admin / Likes"},
+		Middlewares: adminMW,
+	}, h.RestoreLike)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-like",
+		Summary:       "Permanently delete a like",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/likes/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Likes"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeleteLike)
 
 	// ── Bookmarks ────────────────────────────────────────────────────────
 
@@ -160,14 +265,52 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 	}, h.ListBookmarks)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "admin-get-bookmark",
+		Summary:     "Get a single bookmark by ID",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/bookmarks/{id}",
+		Tags:        []string{"Admin / Bookmarks"},
+		Middlewares: adminMW,
+	}, h.GetBookmark)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-create-bookmark",
+		Summary:       "Create a bookmark",
+		Method:        http.MethodPost,
+		Path:          "/api/admin/bookmarks",
+		DefaultStatus: http.StatusCreated,
+		Tags:          []string{"Admin / Bookmarks"},
+		Middlewares:   adminMW,
+	}, h.CreateBookmark)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-bookmark",
-		Summary:       "Hard-delete a bookmark",
+		Summary:       "Soft-delete a bookmark",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/bookmarks/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Bookmarks"},
 		Middlewares:   adminMW,
-	}, h.HardDeleteBookmark)
+	}, h.SoftDeleteBookmark)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-bookmark",
+		Summary:     "Restore a soft-deleted bookmark",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/bookmarks/{id}/restore",
+		Tags:        []string{"Admin / Bookmarks"},
+		Middlewares: adminMW,
+	}, h.RestoreBookmark)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-bookmark",
+		Summary:       "Permanently delete a bookmark",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/bookmarks/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Bookmarks"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeleteBookmark)
 
 	// ── Emotions ─────────────────────────────────────────────────────────
 
@@ -181,14 +324,52 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 	}, h.ListEmotions)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "admin-get-emotion",
+		Summary:     "Get a single emotion tag by ID",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/emotions/{id}",
+		Tags:        []string{"Admin / Emotions"},
+		Middlewares: adminMW,
+	}, h.GetEmotion)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-create-emotion",
+		Summary:       "Create an emotion tag",
+		Method:        http.MethodPost,
+		Path:          "/api/admin/emotions",
+		DefaultStatus: http.StatusCreated,
+		Tags:          []string{"Admin / Emotions"},
+		Middlewares:   adminMW,
+	}, h.CreateEmotion)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-emotion",
-		Summary:       "Hard-delete an emotion tag",
+		Summary:       "Soft-delete an emotion tag",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/emotions/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Emotions"},
 		Middlewares:   adminMW,
-	}, h.HardDeleteEmotion)
+	}, h.SoftDeleteEmotion)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-emotion",
+		Summary:     "Restore a soft-deleted emotion tag",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/emotions/{id}/restore",
+		Tags:        []string{"Admin / Emotions"},
+		Middlewares: adminMW,
+	}, h.RestoreEmotion)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-emotion",
+		Summary:       "Permanently delete an emotion tag",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/emotions/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Emotions"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeleteEmotion)
 
 	// ── Emotion Catalog ──────────────────────────────────────────────────
 
@@ -200,6 +381,15 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 		Tags:        []string{"Admin / Emotion Catalog"},
 		Middlewares: adminMW,
 	}, h.ListEmotionCatalog)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-get-emotion-catalog",
+		Summary:     "Get a single catalog emotion by ID",
+		Method:      http.MethodGet,
+		Path:        "/api/admin/emotion-catalog/{id}",
+		Tags:        []string{"Admin / Emotion Catalog"},
+		Middlewares: adminMW,
+	}, h.GetEmotionCatalog)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "admin-create-emotion-catalog",
@@ -222,11 +412,30 @@ func RegisterAdminRoutes(api huma.API, h *AdminHandler, internalMW, requireAdmin
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "admin-delete-emotion-catalog",
-		Summary:       "Delete a catalog emotion",
+		Summary:       "Soft-delete a catalog emotion",
 		Method:        http.MethodDelete,
 		Path:          "/api/admin/emotion-catalog/{id}",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Admin / Emotion Catalog"},
 		Middlewares:   adminMW,
-	}, h.DeleteEmotionCatalog)
+	}, h.SoftDeleteEmotionCatalog)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-restore-emotion-catalog",
+		Summary:     "Restore a soft-deleted catalog emotion",
+		Method:      http.MethodPost,
+		Path:        "/api/admin/emotion-catalog/{id}/restore",
+		Tags:        []string{"Admin / Emotion Catalog"},
+		Middlewares: adminMW,
+	}, h.RestoreEmotionCatalog)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "admin-permanent-delete-emotion-catalog",
+		Summary:       "Permanently delete a catalog emotion",
+		Method:        http.MethodDelete,
+		Path:          "/api/admin/emotion-catalog/{id}/permanent",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Admin / Emotion Catalog"},
+		Middlewares:   adminMW,
+	}, h.PermanentDeleteEmotionCatalog)
 }

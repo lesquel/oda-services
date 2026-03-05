@@ -15,6 +15,7 @@ type Config struct {
 	InternalSecret string // shared with gateway – rejects unauthenticated internal calls
 	AdminEmail     string
 	AdminPassword  string
+	NATSURL        string
 }
 
 // Load reads configuration from environment variables.
@@ -30,6 +31,7 @@ func Load() *Config {
 		InternalSecret: secret,
 		AdminEmail:     getEnv("ADMIN_EMAIL", "admin@oda.com"),
 		AdminPassword:  getEnv("ADMIN_PASSWORD", ""),
+		NATSURL:        getEnv("NATS_URL", "nats://localhost:4222"),
 	}
 }
 

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"github.com/lesquel/oda-shared/domain"
+	"github.com/lesquel/oda-write-api/internal/natsutil"
 )
 
 // PoemUseCase defines poem mutation operations.
@@ -25,6 +26,7 @@ type poemUseCase struct {
 	likeRepo     domain.LikeRepository
 	emotionRepo  domain.EmotionRepository
 	bookmarkRepo domain.BookmarkRepository
+	natsPublisher *natsutil.Publisher
 }
 
 func NewPoemUseCase(
@@ -32,11 +34,16 @@ func NewPoemUseCase(
 	likeRepo domain.LikeRepository,
 	emotionRepo domain.EmotionRepository,
 	bookmarkRepo domain.BookmarkRepository,
+	natsPublisher ...*natsutil.Publisher,
 ) PoemUseCase {
-	return &poemUseCase{
+	uc := &poemUseCase{
 		poemRepo:     poemRepo,
 		likeRepo:     likeRepo,
 		emotionRepo:  emotionRepo,
 		bookmarkRepo: bookmarkRepo,
 	}
+	if len(natsPublisher) > 0 {
+		uc.natsPublisher = natsPublisher[0]
+	}
+	return uc
 }

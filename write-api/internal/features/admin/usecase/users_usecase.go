@@ -35,4 +35,6 @@ func (uc *adminUseCase) ChangeUserRole(id, role string) error {
 	return uc.repo.ChangeUserRole(id, role)
 }
 
-func (uc *adminUseCase) HardDeleteUser(id string) error { return uc.repo.HardDeleteUser(id) }
+func (uc *adminUseCase) SoftDeleteUser(id string) error    { return uc.repo.SoftDeleteUser(id) }
+func (uc *adminUseCase) RestoreUser(id string) error       { return uc.repo.RestoreUser(id) }
+func (uc *adminUseCase) PermanentDeleteUser(id string) error { return uc.repo.PermanentDeleteUser(id) }

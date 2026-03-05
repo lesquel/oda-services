@@ -103,8 +103,24 @@ func (h *AdminHandler) ChangeUserRole(ctx context.Context, input *ChangeRoleInpu
 	return out, nil
 }
 
-func (h *AdminHandler) HardDeleteUser(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
-	if err := h.uc.HardDeleteUser(input.ID); err != nil {
+func (h *AdminHandler) SoftDeleteUser(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.SoftDeleteUser(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return nil, nil
+}
+
+func (h *AdminHandler) RestoreUser(ctx context.Context, input *GetByIDInput) (*AdminMessageOutput, error) {
+	if err := h.uc.RestoreUser(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	out := &AdminMessageOutput{}
+	out.Body.Message = "user restored"
+	return out, nil
+}
+
+func (h *AdminHandler) PermanentDeleteUser(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.PermanentDeleteUser(input.ID); err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return nil, nil

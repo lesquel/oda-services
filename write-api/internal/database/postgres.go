@@ -48,12 +48,13 @@ func RunMigrations(db *gorm.DB) error {
 		&domain.EmotionTag{},
 		&domain.Bookmark{},
 		&domain.EmotionCatalog{},
+		&domain.ModerationLog{},
 	); err != nil {
 		return err
 	}
 
 	// Ensure UUID defaults via raw SQL (pgx driver strips uuid_generate_v4() from AutoMigrate)
-	tables := []string{"users", "refresh_tokens", "poems", "likes", "emotion_tags", "bookmarks", "emotion_catalog"}
+	tables := []string{"users", "refresh_tokens", "poems", "likes", "emotion_tags", "bookmarks", "emotion_catalog", "moderation_logs"}
 	for _, t := range tables {
 		db.Exec(`ALTER TABLE ` + t + ` ALTER COLUMN id SET DEFAULT uuid_generate_v4()`)
 	}
@@ -78,6 +79,8 @@ func RunMigrations(db *gorm.DB) error {
  ALTER TABLE bookmarks ADD CONSTRAINT fk_bookmarks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`,
 		`ALTER TABLE bookmarks DROP CONSTRAINT IF EXISTS fk_bookmarks_poem;
  ALTER TABLE bookmarks ADD CONSTRAINT fk_bookmarks_poem FOREIGN KEY (poem_id) REFERENCES poems(id) ON DELETE CASCADE`,
+		`ALTER TABLE moderation_logs DROP CONSTRAINT IF EXISTS fk_moderation_logs_poem;
+ ALTER TABLE moderation_logs ADD CONSTRAINT fk_moderation_logs_poem FOREIGN KEY (poem_id) REFERENCES poems(id) ON DELETE CASCADE`,
 	}
 	for _, fk := range fks {
 		if err := db.Exec(fk).Error; err != nil {

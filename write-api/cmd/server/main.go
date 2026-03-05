@@ -17,6 +17,7 @@ import (
 	"github.com/lesquel/oda-write-api/internal/config"
 	"github.com/lesquel/oda-write-api/internal/database"
 	"github.com/lesquel/oda-write-api/internal/middleware"
+	"github.com/lesquel/oda-write-api/internal/natsutil"
 	"github.com/lesquel/oda-write-api/internal/seed"
 
 	authhttp "github.com/lesquel/oda-write-api/internal/features/auth/delivery/http"
@@ -53,6 +54,12 @@ func main() {
 	}
 	seed.SeedEmotions(db)
 
+	// ── NATS connection (for poem moderation) ─────────────────────────────
+	natsPub, err := natsutil.Connect(cfg.NATSURL)
+	if err != nil {
+		slog.Warn("NATS connection failed — moderation disabled", "error", err)
+	}
+
 	// ── Repositories ──────────────────────────────────────────────────────
 	userRepo := authrepo.NewUserRepository(db)
 	tokenRepo := authrepo.NewRefreshTokenRepository(db)
@@ -64,7 +71,7 @@ func main() {
 
 	// ── Use cases ─────────────────────────────────────────────────────────
 	authUC := authusecase.NewAuthUseCase(userRepo, tokenRepo, cfg.JWTSecret)
-	poemUC := poemsusecase.NewPoemUseCase(poemRepo, likeRepo, emotionRepo, bookmarkRepo)
+	poemUC := poemsusecase.NewPoemUseCase(poemRepo, likeRepo, emotionRepo, bookmarkRepo, natsPub)
 	adminUC := adminusecase.NewAdminUseCase(adminRepoInst)
 
 	// ── Handlers ──────────────────────────────────────────────────────────
@@ -126,5 +133,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	slog.Info("shutting down write-api...")
+	natsPub.Close()
 	_ = srv.Shutdown(ctx)
 }

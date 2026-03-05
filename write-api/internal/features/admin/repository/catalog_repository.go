@@ -7,7 +7,15 @@ import (
 
 func (r *adminRepo) ListEmotionCatalog() ([]*domain.EmotionCatalog, error) {
 	var items []*domain.EmotionCatalog
-	return items, r.db.Find(&items).Error
+	return items, r.db.Unscoped().Find(&items).Error
+}
+
+func (r *adminRepo) GetEmotionCatalog(id string) (*domain.EmotionCatalog, error) {
+	var item domain.EmotionCatalog
+	if err := r.db.Unscoped().First(&item, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
 }
 
 func (r *adminRepo) CreateEmotionCatalog(req *domain.CreateEmotionCatalogRequest) error {
@@ -34,6 +42,14 @@ func (r *adminRepo) UpdateEmotionCatalog(id string, req *domain.UpdateEmotionCat
 	return r.db.Model(&domain.EmotionCatalog{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *adminRepo) DeleteEmotionCatalog(id string) error {
+func (r *adminRepo) SoftDeleteEmotionCatalog(id string) error {
 	return r.db.Delete(&domain.EmotionCatalog{}, "id = ?", id).Error
+}
+
+func (r *adminRepo) RestoreEmotionCatalog(id string) error {
+	return r.db.Unscoped().Model(&domain.EmotionCatalog{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+func (r *adminRepo) PermanentDeleteEmotionCatalog(id string) error {
+	return r.db.Unscoped().Delete(&domain.EmotionCatalog{}, "id = ?", id).Error
 }

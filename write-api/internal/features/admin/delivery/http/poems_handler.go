@@ -14,7 +14,7 @@ type ListPoemsInput struct {
 	Page   int    `query:"page" default:"1" minimum:"1" doc:"Page number"`
 	Limit  int    `query:"limit" default:"20" minimum:"1" maximum:"100" doc:"Items per page"`
 	Q      string `query:"q" required:"false" doc:"Search query"`
-	Status string `query:"status" required:"false" enum:"published,draft,removed" doc:"Filter by status"`
+	Status string `query:"status" required:"false" enum:"published,draft,removed,pending_review,rejected" doc:"Filter by status"`
 }
 
 type ListPoemsOutput struct {
@@ -30,14 +30,14 @@ type AdminUpdatePoemInput struct {
 	Body struct {
 		Title   string `json:"title,omitempty" minLength:"1" maxLength:"200" required:"false" doc:"Updated title"`
 		Content string `json:"content,omitempty" minLength:"1" required:"false" doc:"Updated content"`
-		Status  string `json:"status,omitempty" enum:"published,draft,removed" required:"false" doc:"Updated status"`
+		Status  string `json:"status,omitempty" enum:"published,draft,removed,pending_review,rejected" required:"false" doc:"Updated status"`
 	}
 }
 
 type ChangeStatusInput struct {
 	ID   string `path:"id" format:"uuid" doc:"Poem UUID"`
 	Body struct {
-		Status string `json:"status" enum:"published,draft,removed" doc:"New status"`
+		Status string `json:"status" enum:"published,draft,removed,pending_review,rejected" doc:"New status"`
 	}
 }
 
@@ -82,9 +82,80 @@ func (h *AdminHandler) ChangePoemStatus(ctx context.Context, input *ChangeStatus
 	return out, nil
 }
 
-func (h *AdminHandler) HardDeletePoem(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
-	if err := h.uc.HardDeletePoem(input.ID); err != nil {
+func (h *AdminHandler) SoftDeletePoem(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.SoftDeletePoem(input.ID); err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return nil, nil
+}
+
+func (h *AdminHandler) RestorePoem(ctx context.Context, input *GetByIDInput) (*AdminMessageOutput, error) {
+	if err := h.uc.RestorePoem(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	out := &AdminMessageOutput{}
+	out.Body.Message = "poem restored"
+	return out, nil
+}
+
+func (h *AdminHandler) PermanentDeletePoem(ctx context.Context, input *GetByIDInput) (*struct{}, error) {
+	if err := h.uc.PermanentDeletePoem(input.ID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return nil, nil
+}
+
+// ── Moderation types ────────────────────────────────────────────────────────
+
+type ModerationQueueInput struct {
+	Page  int `query:"page" default:"1" minimum:"1" doc:"Page number"`
+	Limit int `query:"limit" default:"20" minimum:"1" maximum:"100" doc:"Items per page"`
+}
+
+type ModerationQueueOutput struct {
+	Body domain.PaginatedResponse[domain.AdminPoem]
+}
+
+type ModerationLogsOutput struct {
+	Body struct {
+		Logs []domain.AdminModerationLog `json:"logs"`
+	}
+}
+
+type ModerationActionInput struct {
+	ID   string `path:"id" format:"uuid" doc:"Poem UUID"`
+	Body struct {
+		Action string `json:"action" enum:"approve,reject" doc:"Moderation action"`
+		Reason string `json:"reason" required:"false" doc:"Reason for the action"`
+	}
+}
+
+// ── Moderation handlers ─────────────────────────────────────────────────────
+
+func (h *AdminHandler) ListModerationQueue(ctx context.Context, input *ModerationQueueInput) (*ModerationQueueOutput, error) {
+	result, err := h.uc.ListModerationQueue(input.Page, input.Limit)
+	if err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return &ModerationQueueOutput{Body: *result}, nil
+}
+
+func (h *AdminHandler) GetModerationLogs(ctx context.Context, input *GetByIDInput) (*ModerationLogsOutput, error) {
+	logs, err := h.uc.GetModerationLogs(input.ID)
+	if err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	out := &ModerationLogsOutput{}
+	out.Body.Logs = logs
+	return out, nil
+}
+
+func (h *AdminHandler) ModerationAction(ctx context.Context, input *ModerationActionInput) (*AdminMessageOutput, error) {
+	adminID := "" // TODO: extract from auth context
+	if err := h.uc.ModerationAction(input.ID, input.Body.Action, input.Body.Reason, adminID); err != nil {
+		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+	}
+	out := &AdminMessageOutput{}
+	out.Body.Message = "moderation action applied"
+	return out, nil
 }

@@ -71,6 +71,14 @@ func (r *adminRepo) ChangeUserRole(id, role string) error {
 	return r.db.Model(&domain.User{}).Where("id = ?", id).Update("role", role).Error
 }
 
-func (r *adminRepo) HardDeleteUser(id string) error {
+func (r *adminRepo) SoftDeleteUser(id string) error {
+	return r.db.Delete(&domain.User{}, "id = ?", id).Error
+}
+
+func (r *adminRepo) RestoreUser(id string) error {
+	return r.db.Unscoped().Model(&domain.User{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+func (r *adminRepo) PermanentDeleteUser(id string) error {
 	return r.db.Unscoped().Delete(&domain.User{}, "id = ?", id).Error
 }

@@ -1,6 +1,11 @@
 package repository
 
-import "github.com/lesquel/oda-shared/domain"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/lesquel/oda-shared/domain"
+)
 
 func (r *adminRepo) ListPoems(page, limit int, q, status string) (*domain.PaginatedResponse[domain.AdminPoem], error) {
 	var poems []domain.Poem
@@ -15,7 +20,7 @@ func (r *adminRepo) ListPoems(page, limit int, q, status string) (*domain.Pagina
 	var total int64
 	db.Model(&domain.Poem{}).Count(&total)
 	offset := (page - 1) * limit
-	if err := db.Limit(limit).Offset(offset).Find(&poems).Error; err != nil {
+	if err := db.Limit(limit).Offset(offset).Order("created_at DESC").Find(&poems).Error; err != nil {
 		return nil, err
 	}
 	items := make([]domain.AdminPoem, len(poems))
@@ -55,6 +60,83 @@ func (r *adminRepo) ChangePoemStatus(id, status string) error {
 	return r.db.Model(&domain.Poem{}).Where("id = ?", id).Update("status", status).Error
 }
 
-func (r *adminRepo) HardDeletePoem(id string) error {
+func (r *adminRepo) SoftDeletePoem(id string) error {
+	return r.db.Delete(&domain.Poem{}, "id = ?", id).Error
+}
+
+func (r *adminRepo) RestorePoem(id string) error {
+	return r.db.Unscoped().Model(&domain.Poem{}).Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+func (r *adminRepo) PermanentDeletePoem(id string) error {
 	return r.db.Unscoped().Delete(&domain.Poem{}, "id = ?", id).Error
+}
+
+// -- Moderation ---------------------------------------------------------------
+
+func (r *adminRepo) ListModerationQueue(page, limit int) (*domain.PaginatedResponse[domain.AdminPoem], error) {
+	var poems []domain.Poem
+	db := r.db.Preload("Author").Where("moderation_status = ? OR status = ?", "pending", "pending_review")
+	var total int64
+	db.Model(&domain.Poem{}).Count(&total)
+	offset := (page - 1) * limit
+	if err := db.Limit(limit).Offset(offset).Order("created_at ASC").Find(&poems).Error; err != nil {
+		return nil, err
+	}
+	items := make([]domain.AdminPoem, len(poems))
+	for i, p := range poems {
+		items[i] = toAdminPoem(p)
+	}
+	return &domain.PaginatedResponse[domain.AdminPoem]{
+		Items: items, TotalCount: total, Page: page, Limit: limit,
+	}, nil
+}
+
+func (r *adminRepo) GetModerationLogs(poemID string) ([]domain.AdminModerationLog, error) {
+	var logs []domain.ModerationLog
+	if err := r.db.Where("poem_id = ?", poemID).Order("created_at DESC").Find(&logs).Error; err != nil {
+		return nil, err
+	}
+	items := make([]domain.AdminModerationLog, len(logs))
+	for i, l := range logs {
+		items[i] = domain.AdminModerationLog{
+			ID: l.ID, PoemID: l.PoemID, Status: l.Status,
+			Score: l.Score, Reason: l.Reason, Provider: l.Provider,
+			Model: l.Model, Categories: l.Categories, CreatedAt: l.CreatedAt,
+		}
+	}
+	return items, nil
+}
+
+func (r *adminRepo) ModerationAction(poemID, action, reason, adminID string) error {
+	now := time.Now()
+	status := "approved"
+	poemStatus := "published"
+	if action == "reject" {
+		status = "rejected"
+		poemStatus = "rejected"
+	}
+
+	// Update poem
+	updates := map[string]interface{}{
+		"status":            poemStatus,
+		"moderation_status": status,
+		"moderation_reason": reason,
+		"moderated_at":      now,
+		"moderated_by":      "admin:" + adminID,
+	}
+	if err := r.db.Model(&domain.Poem{}).Where("id = ?", poemID).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	// Create log entry
+	log := &domain.ModerationLog{
+		ID:     uuid.NewString(),
+		PoemID: poemID,
+		Status: status,
+		Reason: reason,
+		Provider: "admin",
+		Model:    adminID,
+	}
+	return r.db.Create(log).Error
 }

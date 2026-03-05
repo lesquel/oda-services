@@ -22,9 +22,14 @@ type Poem struct {
 	Author        *PoemAuthor    `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
 	Title         string         `gorm:"not null" json:"title"`
 	Content       string         `gorm:"not null" json:"content"`
-	Status        string         `gorm:"default:published" json:"status"`
-	LikesCount    int            `gorm:"default:0" json:"likes_count"`
-	ViewsCount    int            `gorm:"default:0" json:"views_count"`
+	Status           string         `gorm:"default:published" json:"status"`
+	ModerationStatus string         `gorm:"default:skipped" json:"moderation_status"`
+	ModerationScore  float64        `json:"moderation_score,omitempty"`
+	ModerationReason string         `json:"moderation_reason,omitempty"`
+	ModeratedAt      *time.Time     `json:"moderated_at,omitempty"`
+	ModeratedBy      string         `json:"moderated_by,omitempty"`
+	LikesCount       int            `gorm:"default:0" json:"likes_count"`
+	ViewsCount       int            `gorm:"default:0" json:"views_count"`
 	IsLiked       bool           `gorm:"-" json:"is_liked,omitempty"`
 	IsBookmarked  bool           `gorm:"-" json:"is_bookmarked,omitempty"`
 	UserEmotion   string         `gorm:"-" json:"user_emotion,omitempty"`
@@ -39,46 +44,65 @@ func (Poem) TableName() string { return "poems" }
 
 // Like records that a user liked a poem.
 type Like struct {
-	ID        string    `gorm:"type:uuid;primaryKey" json:"id"`
-	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	PoemID    string    `gorm:"type:uuid;not null;index" json:"poem_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string         `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID    string         `gorm:"type:uuid;not null;index" json:"user_id"`
+	PoemID    string         `gorm:"type:uuid;not null;index" json:"poem_id"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Like) TableName() string { return "likes" }
 
 // EmotionTag associates a catalog emotion with a poem (by a specific user).
 type EmotionTag struct {
-	ID        string    `gorm:"type:uuid;primaryKey" json:"id"`
-	PoemID    string    `gorm:"type:uuid;not null;index" json:"poem_id"`
-	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	EmotionID string    `gorm:"type:uuid;not null" json:"emotion_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string         `gorm:"type:uuid;primaryKey" json:"id"`
+	PoemID    string         `gorm:"type:uuid;not null;index" json:"poem_id"`
+	UserID    string         `gorm:"type:uuid;not null;index" json:"user_id"`
+	EmotionID string         `gorm:"type:uuid;not null" json:"emotion_id"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (EmotionTag) TableName() string { return "emotion_tags" }
 
 // Bookmark stores a user's saved poem.
 type Bookmark struct {
-	ID        string    `gorm:"type:uuid;primaryKey" json:"id"`
-	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	PoemID    string    `gorm:"type:uuid;not null;index" json:"poem_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string         `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID    string         `gorm:"type:uuid;not null;index" json:"user_id"`
+	PoemID    string         `gorm:"type:uuid;not null;index" json:"poem_id"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Bookmark) TableName() string { return "bookmarks" }
 
 // EmotionCatalog holds the predefined emotion types users can attach to poems.
 type EmotionCatalog struct {
-	ID          string    `gorm:"type:uuid;primaryKey" json:"id"`
-	Name        string    `gorm:"uniqueIndex;not null" json:"name"`
-	Emoji       string    `json:"emoji"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string         `gorm:"type:uuid;primaryKey" json:"id"`
+	Name        string         `gorm:"uniqueIndex;not null" json:"name"`
+	Emoji       string         `json:"emoji"`
+	Description string         `json:"description"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (EmotionCatalog) TableName() string { return "emotion_catalog" }
+
+// ModerationLog holds the history of all moderation actions on poems.
+type ModerationLog struct {
+	ID         string    `gorm:"type:uuid;primaryKey" json:"id"`
+	PoemID     string    `gorm:"type:uuid;not null;index" json:"poem_id"`
+	Status     string    `gorm:"not null" json:"status"`
+	Score      float64   `json:"score"`
+	Reason     string    `json:"reason"`
+	Provider   string    `json:"provider"`
+	Model      string    `json:"model"`
+	Categories string    `json:"categories"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func (ModerationLog) TableName() string { return "moderation_logs" }
 
 // -- Repository interfaces -----------------------------------------------------
 
