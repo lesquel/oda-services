@@ -94,81 +94,81 @@ func main() {
 		r.Use(middleware.InternalAuth(cfg.InternalSecret))
 
 		r.Route("/api", func(r chi.Router) {
-		// ── Me (profile alias) ───────────────────────────────────────────
-		r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/me", authH.GetProfile)
+			// ── Me (profile alias) ───────────────────────────────────────────
+			r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/me", authH.GetProfile)
 
-		// ── Auth ──────────────────────────────────────────────────────────
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", authH.Register)
-			r.Post("/login", authH.Login)
-			r.Post("/refresh", authH.Refresh)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/logout", authH.Logout)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/profile", authH.GetProfile)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/profile", authH.UpdateProfile)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/change-password", authH.ChangePassword)
-		})
-
-		// ── Users ─────────────────────────────────────────────────────────
-		r.With(middleware.InjectUserContext).Get("/users/search", authH.SearchUsers)
-		r.With(middleware.InjectUserContext).Get("/users/{username}", authH.GetPublicProfile)
-
-		// ── Poems ─────────────────────────────────────────────────────────
-		r.Route("/poems", func(r chi.Router) {
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/", poemH.CreatePoem)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/{id}", poemH.UpdatePoem)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}", poemH.DeletePoem)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/like", poemH.ToggleLike)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/bookmark", poemH.ToggleBookmark)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/emotions", poemH.TagEmotion)
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}/emotions/{emotionID}", poemH.RemoveEmotionTag)
-		})
-
-		// ── Admin ─────────────────────────────────────────────────────────
-		r.Route("/admin", func(r chi.Router) {
-			r.Use(middleware.InjectUserContext, middleware.RequireAdmin)
-
-			r.Get("/stats", adminH.GetStats)
-
-			r.Route("/users", func(r chi.Router) {
-				r.Get("/", adminH.ListUsers)
-				r.Post("/", adminH.CreateUser)
-				r.Get("/{id}", adminH.GetUser)
-				r.Put("/{id}", adminH.UpdateUser)
-				r.Patch("/{id}/role", adminH.ChangeUserRole)
-				r.Delete("/{id}", adminH.HardDeleteUser)
+			// ── Auth ──────────────────────────────────────────────────────────
+			r.Route("/auth", func(r chi.Router) {
+				r.Post("/register", authH.Register)
+				r.Post("/login", authH.Login)
+				r.Post("/refresh", authH.Refresh)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/logout", authH.Logout)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/profile", authH.GetProfile)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/profile", authH.UpdateProfile)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/change-password", authH.ChangePassword)
 			})
 
+			// ── Users ─────────────────────────────────────────────────────────
+			r.With(middleware.InjectUserContext).Get("/users/search", authH.SearchUsers)
+			r.With(middleware.InjectUserContext).Get("/users/{username}", authH.GetPublicProfile)
+
+			// ── Poems ─────────────────────────────────────────────────────────
 			r.Route("/poems", func(r chi.Router) {
-				r.Get("/", adminH.ListPoems)
-				r.Get("/{id}", adminH.GetPoem)
-				r.Put("/{id}", adminH.UpdatePoem)
-				r.Patch("/{id}/status", adminH.ChangePoemStatus)
-				r.Delete("/{id}", adminH.HardDeletePoem)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/", poemH.CreatePoem)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/{id}", poemH.UpdatePoem)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}", poemH.DeletePoem)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/like", poemH.ToggleLike)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/bookmark", poemH.ToggleBookmark)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/emotions", poemH.TagEmotion)
+				r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}/emotions/{emotionID}", poemH.RemoveEmotionTag)
 			})
 
-			r.Route("/likes", func(r chi.Router) {
-				r.Get("/", adminH.ListLikes)
-				r.Delete("/{id}", adminH.HardDeleteLike)
-			})
+			// ── Admin ─────────────────────────────────────────────────────────
+			r.Route("/admin", func(r chi.Router) {
+				r.Use(middleware.InjectUserContext, middleware.RequireAdmin)
 
-			r.Route("/bookmarks", func(r chi.Router) {
-				r.Get("/", adminH.ListBookmarks)
-				r.Delete("/{id}", adminH.HardDeleteBookmark)
-			})
+				r.Get("/stats", adminH.GetStats)
 
-			r.Route("/emotions", func(r chi.Router) {
-				r.Get("/", adminH.ListEmotions)
-				r.Delete("/{id}", adminH.HardDeleteEmotion)
-			})
+				r.Route("/users", func(r chi.Router) {
+					r.Get("/", adminH.ListUsers)
+					r.Post("/", adminH.CreateUser)
+					r.Get("/{id}", adminH.GetUser)
+					r.Put("/{id}", adminH.UpdateUser)
+					r.Patch("/{id}/role", adminH.ChangeUserRole)
+					r.Delete("/{id}", adminH.HardDeleteUser)
+				})
 
-			r.Route("/emotion-catalog", func(r chi.Router) {
-				r.Get("/", adminH.ListEmotionCatalog)
-				r.Post("/", adminH.CreateEmotionCatalog)
-				r.Put("/{id}", adminH.UpdateEmotionCatalog)
-				r.Delete("/{id}", adminH.DeleteEmotionCatalog)
+				r.Route("/poems", func(r chi.Router) {
+					r.Get("/", adminH.ListPoems)
+					r.Get("/{id}", adminH.GetPoem)
+					r.Put("/{id}", adminH.UpdatePoem)
+					r.Patch("/{id}/status", adminH.ChangePoemStatus)
+					r.Delete("/{id}", adminH.HardDeletePoem)
+				})
+
+				r.Route("/likes", func(r chi.Router) {
+					r.Get("/", adminH.ListLikes)
+					r.Delete("/{id}", adminH.HardDeleteLike)
+				})
+
+				r.Route("/bookmarks", func(r chi.Router) {
+					r.Get("/", adminH.ListBookmarks)
+					r.Delete("/{id}", adminH.HardDeleteBookmark)
+				})
+
+				r.Route("/emotions", func(r chi.Router) {
+					r.Get("/", adminH.ListEmotions)
+					r.Delete("/{id}", adminH.HardDeleteEmotion)
+				})
+
+				r.Route("/emotion-catalog", func(r chi.Router) {
+					r.Get("/", adminH.ListEmotionCatalog)
+					r.Post("/", adminH.CreateEmotionCatalog)
+					r.Put("/{id}", adminH.UpdateEmotionCatalog)
+					r.Delete("/{id}", adminH.DeleteEmotionCatalog)
+				})
 			})
 		})
-	})
 	}) // end r.Group (InternalAuth)
 
 	srv := &http.Server{
