@@ -16,7 +16,7 @@ func (uc *ReadUseCase) GetUserStats(userID string) (map[string]interface{}, erro
 
 func (uc *ReadUseCase) GetUserBookmarks(userID string, page, limit int) ([]*domain.Poem, int64, error) {
 	offset := (page - 1) * limit
-	return uc.repo.GetUserBookmarks(userID, limit, offset)
+	return uc.repo.GetUserBookmarks(userID, limit, offset, userID)
 }
 
 func (uc *ReadUseCase) GetEmotionCatalog() ([]*domain.EmotionCatalog, error) {

@@ -17,18 +17,22 @@ func (PoemAuthor) TableName() string { return "users" }
 
 // Poem is the core poetry content entity.
 type Poem struct {
-	ID          string         `gorm:"type:uuid;primaryKey" json:"id"`
-	AuthorID    string         `gorm:"type:uuid;not null;index" json:"author_id"`
-	Author      *PoemAuthor    `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
-	Title       string         `gorm:"not null" json:"title"`
-	Content     string         `gorm:"not null" json:"content"`
-	Status      string         `gorm:"default:published" json:"status"`
-	LikesCount  int            `gorm:"default:0" json:"likes_count"`
-	ViewsCount  int            `gorm:"default:0" json:"views_count"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
-	EmotionTags []EmotionTag   `gorm:"foreignKey:PoemID" json:"emotion_tags,omitempty"`
+	ID            string         `gorm:"type:uuid;primaryKey" json:"id"`
+	AuthorID      string         `gorm:"type:uuid;not null;index" json:"author_id"`
+	Author        *PoemAuthor    `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	Title         string         `gorm:"not null" json:"title"`
+	Content       string         `gorm:"not null" json:"content"`
+	Status        string         `gorm:"default:published" json:"status"`
+	LikesCount    int            `gorm:"default:0" json:"likes_count"`
+	ViewsCount    int            `gorm:"default:0" json:"views_count"`
+	IsLiked       bool           `gorm:"-" json:"is_liked,omitempty"`
+	IsBookmarked  bool           `gorm:"-" json:"is_bookmarked,omitempty"`
+	UserEmotion   string         `gorm:"-" json:"user_emotion,omitempty"`
+	EmotionCounts map[string]int `gorm:"-" json:"emotion_counts,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	EmotionTags   []EmotionTag   `gorm:"foreignKey:PoemID" json:"emotion_tags,omitempty"`
 }
 
 func (Poem) TableName() string { return "poems" }

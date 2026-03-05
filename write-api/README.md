@@ -58,15 +58,15 @@ Auto-generated OpenAPI spec available at `/docs` when the service is running.
 ## Endpoints
 
 ### Auth (`/api/auth/*`)
-- `POST /register` — Create account
-- `POST /login` — Authenticate
-- `POST /refresh` — Rotate tokens
-- `POST /logout` — Revoke refresh token
+- `POST /auth/register` — Create account
+- `POST /auth/login` — Authenticate
+- `POST /auth/refresh` — Rotate tokens
+- `POST /auth/logout` — Revoke refresh token
 
-### Profile (`/api/me`, `/api/users/*`)
+### Profile (`/api/me`, `/api/auth/*`, `/api/users/*`)
 - `GET /me` — Current user profile
-- `PUT /me` — Update profile
-- `PUT /me/password` — Change password
+- `PUT /auth/profile` — Update profile
+- `POST /auth/change-password` — Change password
 - `GET /users/:username` — Public profile
 - `GET /users/search` — Search users
 
@@ -77,7 +77,7 @@ Auto-generated OpenAPI spec available at `/docs` when the service is running.
 - `POST /poems/:id/like` — Toggle like
 - `POST /poems/:id/bookmark` — Toggle bookmark
 - `POST /poems/:id/emotions` — Tag emotion
-- `DELETE /poems/:id/emotions/:emotionId` — Remove emotion tag
+- `DELETE /poems/:id/emotions` — Remove current user's emotion tag
 
 ### Admin (`/api/admin/*`)
 - Dashboard stats, CRUD for users/poems, manage likes/bookmarks/emotions, emotion catalog management

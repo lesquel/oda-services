@@ -2,7 +2,7 @@ package repository
 
 import "github.com/lesquel/oda-shared/domain"
 
-func (r *ReadRepository) GetUserBookmarks(userID string, limit, offset int) ([]*domain.Poem, int64, error) {
+func (r *ReadRepository) GetUserBookmarks(userID string, limit, offset int, viewerID string) ([]*domain.Poem, int64, error) {
 	var bookmarks []*domain.Bookmark
 	var total int64
 	r.db.Model(&domain.Bookmark{}).Where("user_id = ?", userID).Count(&total)
@@ -18,5 +18,8 @@ func (r *ReadRepository) GetUserBookmarks(userID string, limit, offset int) ([]*
 	}
 	var poems []*domain.Poem
 	err := r.db.Preload("Author").Where("id IN ?", poemIDs).Find(&poems).Error
+	if err == nil {
+		err = r.enrichPoems(poems, viewerID)
+	}
 	return poems, total, err
 }

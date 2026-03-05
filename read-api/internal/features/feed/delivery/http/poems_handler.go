@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/lesquel/oda-read-api/internal/middleware"
 	"github.com/lesquel/oda-shared/domain"
 )
 
@@ -64,8 +65,9 @@ type GetUserPoemsOutput struct {
 
 // ── Poem handlers ───────────────────────────────────────────────────────────
 
-func (h *ReadHandler) GetFeed(_ context.Context, input *GetFeedInput) (*GetFeedOutput, error) {
-	poems, _, err := h.uc.GetFeed(input.Page, input.Limit)
+func (h *ReadHandler) GetFeed(ctx context.Context, input *GetFeedInput) (*GetFeedOutput, error) {
+	viewerID := middleware.GetUserID(ctx)
+	poems, _, err := h.uc.GetFeedForViewer(input.Page, input.Limit, viewerID)
 	if err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
@@ -75,8 +77,9 @@ func (h *ReadHandler) GetFeed(_ context.Context, input *GetFeedInput) (*GetFeedO
 	return &GetFeedOutput{Body: poems}, nil
 }
 
-func (h *ReadHandler) SearchPoems(_ context.Context, input *SearchPoemsInput) (*SearchPoemsOutput, error) {
-	poems, _, err := h.uc.SearchPoems(input.Q, input.Page, input.Limit)
+func (h *ReadHandler) SearchPoems(ctx context.Context, input *SearchPoemsInput) (*SearchPoemsOutput, error) {
+	viewerID := middleware.GetUserID(ctx)
+	poems, _, err := h.uc.SearchPoemsForViewer(input.Q, input.Page, input.Limit, viewerID)
 	if err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}
@@ -86,8 +89,9 @@ func (h *ReadHandler) SearchPoems(_ context.Context, input *SearchPoemsInput) (*
 	return &SearchPoemsOutput{Body: poems}, nil
 }
 
-func (h *ReadHandler) GetPoem(_ context.Context, input *GetPoemInput) (*GetPoemOutput, error) {
-	poem, err := h.uc.GetPoem(input.ID)
+func (h *ReadHandler) GetPoem(ctx context.Context, input *GetPoemInput) (*GetPoemOutput, error) {
+	viewerID := middleware.GetUserID(ctx)
+	poem, err := h.uc.GetPoemForViewer(input.ID, viewerID)
 	if err != nil {
 		return nil, huma.NewError(http.StatusNotFound, "poem not found")
 	}
@@ -120,8 +124,9 @@ func (h *ReadHandler) GetEmotionDistribution(_ context.Context, input *GetEmotio
 	return &GetEmotionDistOutput{Body: dist}, nil
 }
 
-func (h *ReadHandler) GetUserPoems(_ context.Context, input *GetUserPoemsInput) (*GetUserPoemsOutput, error) {
-	poems, _, err := h.uc.GetUserPoems(input.UserID, input.Status, input.Page, input.Limit)
+func (h *ReadHandler) GetUserPoems(ctx context.Context, input *GetUserPoemsInput) (*GetUserPoemsOutput, error) {
+	viewerID := middleware.GetUserID(ctx)
+	poems, _, err := h.uc.GetUserPoemsForViewer(input.UserID, input.Status, input.Page, input.Limit, viewerID)
 	if err != nil {
 		return nil, huma.NewError(http.StatusInternalServerError, err.Error())
 	}

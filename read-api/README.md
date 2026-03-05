@@ -59,9 +59,18 @@ Auto-generated OpenAPI spec available at `/docs` when the service is running.
 ### Poems
 - `GET /api/poems/feed` — Public feed (paginated)
 - `GET /api/poems/search?q=` — Search poems
-- `GET /api/poems/:id` — Single poem
+- `GET /api/poems/:id` — Single poem (increments `views_count`)
 - `GET /api/poems/:id/stats` — Likes, views, emotion count
 - `GET /api/poems/:id/emotions/distribution` — Emotion breakdown
+
+### Viewer-aware fields
+
+When `X-User-ID` is present (forwarded by gateway), poem payloads include:
+
+- `is_liked`
+- `is_bookmarked`
+- `user_emotion`
+- `emotion_counts` (keyed by emotion `name`, e.g. `melancholic`)
 
 ### Users
 - `GET /api/users/search?q=` — Search users

@@ -46,19 +46,20 @@ func (r *ReadRepository) GetUserStats(userID string) (map[string]interface{}, er
 
 	// Emotion distribution across user's poems
 	type emotionRow struct {
-		EmotionID string
-		Count     int
+		EmotionName string
+		Count       int
 	}
 	var emotionRows []emotionRow
-	r.db.Model(&domain.EmotionTag{}).
-		Select("emotion_id, COUNT(*) as count").
-		Where("poem_id IN (?)", r.db.Model(&domain.Poem{}).Select("id").Where("author_id = ?", userID)).
-		Group("emotion_id").
+	r.db.Table("emotion_tags et").
+		Select("ec.name as emotion_name, COUNT(*) as count").
+		Joins("JOIN emotion_catalog ec ON ec.id = et.emotion_id").
+		Where("et.poem_id IN (?)", r.db.Model(&domain.Poem{}).Select("id").Where("author_id = ?", userID)).
+		Group("ec.name").
 		Scan(&emotionRows)
 
 	emotionDist := make(map[string]int, len(emotionRows))
 	for _, row := range emotionRows {
-		emotionDist[row.EmotionID] = row.Count
+		emotionDist[row.EmotionName] = row.Count
 	}
 
 	return map[string]interface{}{
