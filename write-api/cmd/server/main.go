@@ -98,9 +98,10 @@ func main() {
 	})
 
 	// All write-api routes require the internal secret header (only gateway can call)
-	r.Use(middleware.InternalAuth(cfg.InternalSecret))
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.InternalAuth(cfg.InternalSecret))
 
-	r.Route("/api", func(r chi.Router) {
+		r.Route("/api", func(r chi.Router) {
 		// ── Auth ──────────────────────────────────────────────────────────
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authH.Register)
@@ -173,6 +174,7 @@ func main() {
 			})
 		})
 	})
+	}) // end r.Group (InternalAuth)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

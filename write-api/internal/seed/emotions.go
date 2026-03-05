@@ -3,6 +3,7 @@ package seed
 import (
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/lesquel/oda-shared/domain"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -25,6 +26,9 @@ func SeedEmotions(db *gorm.DB) {
 		{Name: "Tierno", Emoji: "🌺", Description: "Delicado, suave, llena de cariño"},
 	}
 	for _, e := range emotions {
+		if e.ID == "" {
+			e.ID = uuid.NewString()
+		}
 		if err := db.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
 			DoUpdates: clause.AssignmentColumns([]string{"emoji", "description"}),

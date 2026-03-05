@@ -64,7 +64,9 @@ func main() {
 			r.Use(middleware.OptionalJWTAuth(cfg.JWTSecret))
 			r.Handle("/feed", proxyHandler)
 			r.Handle("/feed/*", proxyHandler)
+			r.Handle("/poems", proxyHandler)
 			r.Handle("/poems/*", proxyHandler)
+			r.Handle("/users", proxyHandler)
 			r.Handle("/users/*", proxyHandler)
 			r.Handle("/emotion-catalog", proxyHandler)
 			r.Handle("/emotion-catalog/*", proxyHandler)
@@ -86,6 +88,7 @@ func main() {
 		// Admin routes — admin JWT required
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAdminAuth(cfg.JWTSecret))
+			r.Handle("/admin", proxyHandler)
 			r.Handle("/admin/*", proxyHandler)
 		})
 	})

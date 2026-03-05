@@ -62,26 +62,29 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok","service":"read-api"}`))
 	})
 
-	r.Use(middleware.InternalAuth(cfg.InternalSecret))
+	// All read-api routes require the internal secret header (only gateway can call)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.InternalAuth(cfg.InternalSecret))
 
-	r.Route("/api", func(r chi.Router) {
-		r.With(middleware.InjectUserContext).Get("/feed", h.GetFeed)
+		r.Route("/api", func(r chi.Router) {
+			r.With(middleware.InjectUserContext).Get("/feed", h.GetFeed)
 
-		r.Route("/poems", func(r chi.Router) {
-			r.With(middleware.InjectUserContext).Get("/search", h.SearchPoems)
-			r.With(middleware.InjectUserContext).Get("/{id}", h.GetPoem)
-			r.With(middleware.InjectUserContext).Get("/{id}/stats", h.GetPoemStats)
-			r.With(middleware.InjectUserContext).Get("/{id}/emotions/distribution", h.GetEmotionDistribution)
+			r.Route("/poems", func(r chi.Router) {
+				r.With(middleware.InjectUserContext).Get("/search", h.SearchPoems)
+				r.With(middleware.InjectUserContext).Get("/{id}", h.GetPoem)
+				r.With(middleware.InjectUserContext).Get("/{id}/stats", h.GetPoemStats)
+				r.With(middleware.InjectUserContext).Get("/{id}/emotions/distribution", h.GetEmotionDistribution)
+			})
+
+			r.Route("/users", func(r chi.Router) {
+				r.With(middleware.InjectUserContext).Get("/search", h.SearchUsers)
+				r.With(middleware.InjectUserContext).Get("/{username}", h.GetPublicProfile)
+				r.With(middleware.InjectUserContext).Get("/{userID}/poems", h.GetUserPoems)
+			})
+
+			r.With(middleware.InjectUserContext).Get("/bookmarks", h.GetUserBookmarks)
+			r.Get("/emotion-catalog", h.GetEmotionCatalog)
 		})
-
-		r.Route("/users", func(r chi.Router) {
-			r.With(middleware.InjectUserContext).Get("/search", h.SearchUsers)
-			r.With(middleware.InjectUserContext).Get("/{username}", h.GetPublicProfile)
-			r.With(middleware.InjectUserContext).Get("/{userID}/poems", h.GetUserPoems)
-		})
-
-		r.With(middleware.InjectUserContext).Get("/bookmarks", h.GetUserBookmarks)
-		r.Get("/emotion-catalog", h.GetEmotionCatalog)
 	})
 
 	srv := &http.Server{
