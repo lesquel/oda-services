@@ -131,10 +131,10 @@ func (r *adminRepo) ModerationAction(poemID, action, reason, adminID string) err
 
 	// Create log entry
 	log := &domain.ModerationLog{
-		ID:     uuid.NewString(),
-		PoemID: poemID,
-		Status: status,
-		Reason: reason,
+		ID:       uuid.NewString(),
+		PoemID:   poemID,
+		Status:   status,
+		Reason:   reason,
 		Provider: "admin",
 		Model:    adminID,
 	}

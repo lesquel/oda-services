@@ -22,10 +22,10 @@ type PoemUseCase interface {
 }
 
 type poemUseCase struct {
-	poemRepo     domain.PoemRepository
-	likeRepo     domain.LikeRepository
-	emotionRepo  domain.EmotionRepository
-	bookmarkRepo domain.BookmarkRepository
+	poemRepo      domain.PoemRepository
+	likeRepo      domain.LikeRepository
+	emotionRepo   domain.EmotionRepository
+	bookmarkRepo  domain.BookmarkRepository
 	natsPublisher *natsutil.Publisher
 }
 
