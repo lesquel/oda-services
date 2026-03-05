@@ -132,6 +132,16 @@ func (h *ReadHandler) GetEmotionDistribution(w http.ResponseWriter, r *http.Requ
 	respond.JSON(w, http.StatusOK, dist)
 }
 
+func (h *ReadHandler) GetUserStats(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	stats, err := h.uc.GetUserStats(userID)
+	if err != nil {
+		respond.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respond.JSON(w, http.StatusOK, stats)
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func queryInt(r *http.Request, key string, def int) int {

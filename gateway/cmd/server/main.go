@@ -78,6 +78,7 @@ func main() {
 		// Authenticated routes — JWT required
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireJWTAuth(cfg.JWTSecret))
+			r.Handle("/me", proxyHandler)
 			r.Handle("/auth/*", proxyHandler)
 			r.Handle("/bookmarks", proxyHandler)
 			r.Handle("/bookmarks/*", proxyHandler)

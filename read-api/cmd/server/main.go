@@ -71,6 +71,7 @@ func main() {
 				r.With(middleware.InjectUserContext).Get("/search", h.SearchUsers)
 				r.With(middleware.InjectUserContext).Get("/{username}", h.GetPublicProfile)
 				r.With(middleware.InjectUserContext).Get("/{userID}/poems", h.GetUserPoems)
+				r.With(middleware.InjectUserContext).Get("/{userID}/stats", h.GetUserStats)
 			})
 
 			r.With(middleware.InjectUserContext).Get("/bookmarks", h.GetUserBookmarks)

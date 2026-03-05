@@ -57,3 +57,7 @@ func (uc *ReadUseCase) GetEmotionCatalog() ([]*domain.EmotionCatalog, error) {
 func (uc *ReadUseCase) GetEmotionDistribution(poemID string) (map[string]int, error) {
 	return uc.repo.GetEmotionDistribution(poemID)
 }
+
+func (uc *ReadUseCase) GetUserStats(userID string) (map[string]interface{}, error) {
+	return uc.repo.GetUserStats(userID)
+}

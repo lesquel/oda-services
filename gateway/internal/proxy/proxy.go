@@ -160,6 +160,7 @@ func routeRequest(r *http.Request, writeURL, readURL string) string {
 
 	path := r.URL.Path
 	writeGetPrefixes := []string{
+		"/api/me",
 		"/api/auth/profile",
 		"/api/admin/",
 	}

@@ -94,6 +94,9 @@ func main() {
 		r.Use(middleware.InternalAuth(cfg.InternalSecret))
 
 		r.Route("/api", func(r chi.Router) {
+		// ── Me (profile alias) ───────────────────────────────────────────
+		r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/me", authH.GetProfile)
+
 		// ── Auth ──────────────────────────────────────────────────────────
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authH.Register)
