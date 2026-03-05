@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 
 	"github.com/lesquel/oda-read-api/internal/config"
 	"github.com/lesquel/oda-read-api/internal/database"
@@ -47,13 +46,6 @@ func main() {
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.BodyLimit(1 << 20))
 	r.Use(chimw.Timeout(30 * time.Second))
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Internal-Secret"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	}))
 
 	// ── Health check (no auth required) ──────────────────────────────────
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -67,9 +59,8 @@ func main() {
 		r.Use(middleware.InternalAuth(cfg.InternalSecret))
 
 		r.Route("/api", func(r chi.Router) {
-			r.With(middleware.InjectUserContext).Get("/feed", h.GetFeed)
-
 			r.Route("/poems", func(r chi.Router) {
+				r.With(middleware.InjectUserContext).Get("/feed", h.GetFeed)
 				r.With(middleware.InjectUserContext).Get("/search", h.SearchPoems)
 				r.With(middleware.InjectUserContext).Get("/{id}", h.GetPoem)
 				r.With(middleware.InjectUserContext).Get("/{id}/stats", h.GetPoemStats)
@@ -83,7 +74,7 @@ func main() {
 			})
 
 			r.With(middleware.InjectUserContext).Get("/bookmarks", h.GetUserBookmarks)
-			r.Get("/emotion-catalog", h.GetEmotionCatalog)
+			r.Get("/emotions", h.GetEmotionCatalog)
 		})
 	})
 

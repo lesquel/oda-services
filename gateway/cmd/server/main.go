@@ -62,14 +62,12 @@ func main() {
 		// Public routes — optional JWT (user context injected if present)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OptionalJWTAuth(cfg.JWTSecret))
-			r.Handle("/feed", proxyHandler)
-			r.Handle("/feed/*", proxyHandler)
 			r.Handle("/poems", proxyHandler)
 			r.Handle("/poems/*", proxyHandler)
 			r.Handle("/users", proxyHandler)
 			r.Handle("/users/*", proxyHandler)
-			r.Handle("/emotion-catalog", proxyHandler)
-			r.Handle("/emotion-catalog/*", proxyHandler)
+			r.Handle("/emotions", proxyHandler)
+			r.Handle("/emotions/*", proxyHandler)
 		})
 
 		// Auth routes — no auth required (register, login, refresh)

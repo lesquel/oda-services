@@ -174,10 +174,14 @@ return readURL
 
 func copyHeaders(src, dst http.Header) {
 for key, values := range src {
-switch strings.ToLower(key) {
-case "connection", "keep-alive", "proxy-authenticate",
-"proxy-authorization", "te", "trailers",
-"transfer-encoding", "upgrade":
+lk := strings.ToLower(key)
+switch {
+case lk == "connection" || lk == "keep-alive" || lk == "proxy-authenticate" ||
+lk == "proxy-authorization" || lk == "te" || lk == "trailers" ||
+lk == "transfer-encoding" || lk == "upgrade":
+continue
+// Strip CORS headers from upstream — the gateway owns CORS.
+case strings.HasPrefix(lk, "access-control-"):
 continue
 }
 for _, v := range values {
