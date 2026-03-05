@@ -1,0 +1,11 @@
+# Test artifacts
+*.test
+coverage.out
+coverage.html
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

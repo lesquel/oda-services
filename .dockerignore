@@ -5,3 +5,7 @@
 **/testdata/
 **/.git
 **/README.md
+
+# Secrets
+**/.env
+**/.env.*
