@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,6 +27,7 @@ func main() {
 	})))
 
 	cfg := config.Load()
+	docsClient := &http.Client{Timeout: 15 * time.Second}
 
 	proxyHandler := proxy.New(proxy.Config{
 		WriteAPIURL:    cfg.WriteAPIURL,
@@ -66,11 +69,17 @@ func main() {
 <html><head><title>ODA API Docs</title></head><body style="font-family:system-ui;max-width:600px;margin:80px auto">
 <h1>ODA API Documentation</h1>
 <ul>
-<li><a href="` + cfg.WriteAPIURL + `/docs">Write API (mutations)</a></li>
-<li><a href="` + cfg.ReadAPIURL + `/docs">Read API (queries)</a></li>
+<li><a href="/docs/write">Write API (mutations)</a></li>
+<li><a href="/docs/read">Read API (queries)</a></li>
 </ul>
 </body></html>`))
 	})
+
+	// ── Docs proxied through gateway (same origin :8080) ───────────────
+	r.Get("/docs/write", proxyDocsPage(docsClient, cfg.WriteAPIURL, "/docs/write/openapi.yaml"))
+	r.Get("/docs/read", proxyDocsPage(docsClient, cfg.ReadAPIURL, "/docs/read/openapi.yaml"))
+	r.Get("/docs/write/openapi.yaml", proxyDocsSpec(docsClient, cfg.WriteAPIURL))
+	r.Get("/docs/read/openapi.yaml", proxyDocsSpec(docsClient, cfg.ReadAPIURL))
 
 	// ── API routes ──────────────────────────────────────────────────────
 	r.Route("/api", func(r chi.Router) {
@@ -132,4 +141,59 @@ func main() {
 	defer cancel()
 	slog.Info("shutting down gateway...")
 	_ = srv.Shutdown(ctx)
+}
+
+func proxyDocsPage(client *http.Client, upstreamBaseURL, openapiPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, strings.TrimRight(upstreamBaseURL, "/")+"/docs", nil)
+		if err != nil {
+			http.Error(w, `{"error":"failed to build docs request"}`, http.StatusBadGateway)
+			return
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, `{"error":"failed to fetch docs"}`, http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(w, `{"error":"failed to read docs response"}`, http.StatusBadGateway)
+			return
+		}
+
+		contentType := resp.Header.Get("Content-Type")
+		if strings.Contains(strings.ToLower(contentType), "text/html") {
+			body = []byte(strings.ReplaceAll(string(body), "/openapi.yaml", openapiPath))
+		}
+
+		w.Header().Set("Content-Type", contentType)
+		w.WriteHeader(resp.StatusCode)
+		_, _ = w.Write(body)
+	}
+}
+
+func proxyDocsSpec(client *http.Client, upstreamBaseURL string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, strings.TrimRight(upstreamBaseURL, "/")+"/openapi.yaml", nil)
+		if err != nil {
+			http.Error(w, `{"error":"failed to build openapi request"}`, http.StatusBadGateway)
+			return
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, `{"error":"failed to fetch openapi"}`, http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		if contentType := resp.Header.Get("Content-Type"); contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
+	}
 }
