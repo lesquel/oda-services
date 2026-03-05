@@ -53,12 +53,15 @@ func (r *ReadRepository) SearchPoems(query string, limit, offset int) ([]*domain
 	return poems, total, err
 }
 
-func (r *ReadRepository) GetUserPoems(userID string, limit, offset int) ([]*domain.Poem, int64, error) {
+func (r *ReadRepository) GetUserPoems(userID, status string, limit, offset int) ([]*domain.Poem, int64, error) {
+	if status == "" {
+		status = "published"
+	}
 	var poems []*domain.Poem
 	var total int64
-	r.db.Model(&domain.Poem{}).Where("author_id = ? AND status = ?", userID, "published").Count(&total)
+	r.db.Model(&domain.Poem{}).Where("author_id = ? AND status = ?", userID, status).Count(&total)
 	err := r.db.Preload("Author").Preload("EmotionTags").
-		Where("author_id = ? AND status = ?", userID, "published").
+		Where("author_id = ? AND status = ?", userID, status).
 		Order("created_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&poems).Error

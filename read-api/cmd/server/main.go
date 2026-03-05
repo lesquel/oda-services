@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
@@ -16,7 +18,6 @@ import (
 	"github.com/lesquel/oda-read-api/internal/database"
 	"github.com/lesquel/oda-read-api/internal/middleware"
 
-	// ── features/feed ──────────────────────────────────────────────────────
 	feedhttp "github.com/lesquel/oda-read-api/internal/features/feed/delivery/http"
 	feedrepo "github.com/lesquel/oda-read-api/internal/features/feed/repository"
 	feeduc "github.com/lesquel/oda-read-api/internal/features/feed/usecase"
@@ -40,45 +41,40 @@ func main() {
 
 	// ── Router ────────────────────────────────────────────────────────────
 	r := chi.NewRouter()
-	r.Use(chimw.Logger)
-	r.Use(chimw.Recoverer)
 	r.Use(chimw.RequestID)
+	r.Use(chimw.Recoverer)
 	r.Use(middleware.SecurityHeaders)
-	r.Use(middleware.BodyLimit(1 << 20))
-	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.InjectUserContext)
+	r.Use(middleware.SlogRequestLogger)
 
-	// ── Health check (no auth required) ──────────────────────────────────
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","service":"read-api"}`))
+	// ── Huma API ──────────────────────────────────────────────────────────
+	humaConfig := huma.DefaultConfig("ODA Read API", "1.0.0")
+	humaConfig.Info.Description = "Read-only API for ODA poetry platform — feed, search, profiles, stats."
+	api := humachi.New(r, humaConfig)
+
+	// ── Health check ─────────────────────────────────────────────────────
+	huma.Register(api, huma.Operation{
+		OperationID: "healthz",
+		Summary:     "Health check",
+		Method:      http.MethodGet,
+		Path:        "/healthz",
+		Tags:        []string{"Health"},
+	}, func(_ context.Context, _ *struct{}) (*struct{ Body struct{ Status string `json:"status"` } }, error) {
+		out := &struct {
+			Body struct {
+				Status string `json:"status"`
+			}
+		}{}
+		out.Body.Status = "ok"
+		return out, nil
 	})
 
-	// All read-api routes require the internal secret header (only gateway can call)
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.InternalAuth(cfg.InternalSecret))
+	// ── Register read routes ─────────────────────────────────────────────
+	internalMW := middleware.HumaInternalAuth(cfg.InternalSecret)
+	requireUserMW := middleware.HumaRequireUser(api)
+	feedhttp.RegisterReadRoutes(api, h, internalMW, requireUserMW)
 
-		r.Route("/api", func(r chi.Router) {
-			r.Route("/poems", func(r chi.Router) {
-				r.With(middleware.InjectUserContext).Get("/feed", h.GetFeed)
-				r.With(middleware.InjectUserContext).Get("/search", h.SearchPoems)
-				r.With(middleware.InjectUserContext).Get("/{id}", h.GetPoem)
-				r.With(middleware.InjectUserContext).Get("/{id}/stats", h.GetPoemStats)
-				r.With(middleware.InjectUserContext).Get("/{id}/emotions/distribution", h.GetEmotionDistribution)
-			})
-
-			r.Route("/users", func(r chi.Router) {
-				r.With(middleware.InjectUserContext).Get("/search", h.SearchUsers)
-				r.With(middleware.InjectUserContext).Get("/{username}", h.GetPublicProfile)
-				r.With(middleware.InjectUserContext).Get("/{userID}/poems", h.GetUserPoems)
-				r.With(middleware.InjectUserContext).Get("/{userID}/stats", h.GetUserStats)
-			})
-
-			r.With(middleware.InjectUserContext).Get("/bookmarks", h.GetUserBookmarks)
-			r.Get("/emotions", h.GetEmotionCatalog)
-		})
-	})
-
+	// ── Server ───────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
@@ -88,7 +84,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("read-api listening", "port", cfg.Port)
+		slog.Info("read-api listening", "port", cfg.Port, "docs", "http://localhost:"+cfg.Port+"/docs")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("listen error", "error", err)
 			os.Exit(1)

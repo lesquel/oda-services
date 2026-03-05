@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
@@ -17,17 +19,14 @@ import (
 	"github.com/lesquel/oda-write-api/internal/middleware"
 	"github.com/lesquel/oda-write-api/internal/seed"
 
-	// ── features/auth ──────────────────────────────────────────────────────
 	authhttp "github.com/lesquel/oda-write-api/internal/features/auth/delivery/http"
 	authrepo "github.com/lesquel/oda-write-api/internal/features/auth/repository"
 	authusecase "github.com/lesquel/oda-write-api/internal/features/auth/usecase"
 
-	// ── features/poems ─────────────────────────────────────────────────────
 	poemshttp "github.com/lesquel/oda-write-api/internal/features/poems/delivery/http"
 	poemsrepo "github.com/lesquel/oda-write-api/internal/features/poems/repository"
 	poemsusecase "github.com/lesquel/oda-write-api/internal/features/poems/usecase"
 
-	// ── features/admin ─────────────────────────────────────────────────────
 	adminhttp "github.com/lesquel/oda-write-api/internal/features/admin/delivery/http"
 	adminrepo "github.com/lesquel/oda-write-api/internal/features/admin/repository"
 	adminusecase "github.com/lesquel/oda-write-api/internal/features/admin/usecase"
@@ -75,102 +74,35 @@ func main() {
 
 	// ── Router ────────────────────────────────────────────────────────────
 	r := chi.NewRouter()
-	r.Use(chimw.Logger)
-	r.Use(chimw.Recoverer)
 	r.Use(chimw.RequestID)
+	r.Use(chimw.Recoverer)
 	r.Use(middleware.SecurityHeaders)
-	r.Use(middleware.BodyLimit(2 << 20))
-	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.InjectUserContext) // always extract user context from gateway headers
+	r.Use(middleware.SlogRequestLogger)
 
-	// ── Health check (no auth required) ──────────────────────────────────
+	// ── Health check (no auth) ──────────────────────────────────────────
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok","service":"write-api"}`))
 	})
 
-	// All write-api routes require the internal secret header (only gateway can call)
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.InternalAuth(cfg.InternalSecret))
+	// ── Huma API (auto-generates /docs and /openapi.json) ───────────────
+	humaConfig := huma.DefaultConfig("ODA Write API", "1.0.0")
+	humaConfig.Info.Description = "Handles authentication, poem mutations, bookmarks, likes, and admin operations."
+	api := humachi.New(r, humaConfig)
 
-		r.Route("/api", func(r chi.Router) {
-			// ── Me (profile alias) ───────────────────────────────────────────
-			r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/me", authH.GetProfile)
+	// ── Huma middleware ─────────────────────────────────────────────────
+	internalMW := middleware.HumaInternalAuth(cfg.InternalSecret)
+	requireUserMW := middleware.HumaRequireUser(api)
+	requireAdminMW := middleware.HumaRequireAdmin(api)
 
-			// ── Auth ──────────────────────────────────────────────────────────
-			r.Route("/auth", func(r chi.Router) {
-				r.Post("/register", authH.Register)
-				r.Post("/login", authH.Login)
-				r.Post("/refresh", authH.Refresh)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/logout", authH.Logout)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Get("/profile", authH.GetProfile)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/profile", authH.UpdateProfile)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/change-password", authH.ChangePassword)
-			})
+	// ── Register all routes ─────────────────────────────────────────────
+	authhttp.RegisterAuthRoutes(api, authH, internalMW, requireUserMW)
+	poemshttp.RegisterPoemRoutes(api, poemH, internalMW, requireUserMW)
+	adminhttp.RegisterAdminRoutes(api, adminH, internalMW, requireAdminMW)
 
-			// ── Users ─────────────────────────────────────────────────────────
-			r.With(middleware.InjectUserContext).Get("/users/search", authH.SearchUsers)
-			r.With(middleware.InjectUserContext).Get("/users/{username}", authH.GetPublicProfile)
-
-			// ── Poems ─────────────────────────────────────────────────────────
-			r.Route("/poems", func(r chi.Router) {
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/", poemH.CreatePoem)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Put("/{id}", poemH.UpdatePoem)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}", poemH.DeletePoem)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/like", poemH.ToggleLike)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/bookmark", poemH.ToggleBookmark)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Post("/{id}/emotions", poemH.TagEmotion)
-				r.With(middleware.InjectUserContext, middleware.RequireUser).Delete("/{id}/emotions/{emotionID}", poemH.RemoveEmotionTag)
-			})
-
-			// ── Admin ─────────────────────────────────────────────────────────
-			r.Route("/admin", func(r chi.Router) {
-				r.Use(middleware.InjectUserContext, middleware.RequireAdmin)
-
-				r.Get("/stats", adminH.GetStats)
-
-				r.Route("/users", func(r chi.Router) {
-					r.Get("/", adminH.ListUsers)
-					r.Post("/", adminH.CreateUser)
-					r.Get("/{id}", adminH.GetUser)
-					r.Put("/{id}", adminH.UpdateUser)
-					r.Patch("/{id}/role", adminH.ChangeUserRole)
-					r.Delete("/{id}", adminH.HardDeleteUser)
-				})
-
-				r.Route("/poems", func(r chi.Router) {
-					r.Get("/", adminH.ListPoems)
-					r.Get("/{id}", adminH.GetPoem)
-					r.Put("/{id}", adminH.UpdatePoem)
-					r.Patch("/{id}/status", adminH.ChangePoemStatus)
-					r.Delete("/{id}", adminH.HardDeletePoem)
-				})
-
-				r.Route("/likes", func(r chi.Router) {
-					r.Get("/", adminH.ListLikes)
-					r.Delete("/{id}", adminH.HardDeleteLike)
-				})
-
-				r.Route("/bookmarks", func(r chi.Router) {
-					r.Get("/", adminH.ListBookmarks)
-					r.Delete("/{id}", adminH.HardDeleteBookmark)
-				})
-
-				r.Route("/emotions", func(r chi.Router) {
-					r.Get("/", adminH.ListEmotions)
-					r.Delete("/{id}", adminH.HardDeleteEmotion)
-				})
-
-				r.Route("/emotion-catalog", func(r chi.Router) {
-					r.Get("/", adminH.ListEmotionCatalog)
-					r.Post("/", adminH.CreateEmotionCatalog)
-					r.Put("/{id}", adminH.UpdateEmotionCatalog)
-					r.Delete("/{id}", adminH.DeleteEmotionCatalog)
-				})
-			})
-		})
-	}) // end r.Group (InternalAuth)
-
+	// ── Server ──────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
@@ -180,7 +112,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("write-api listening", "port", cfg.Port)
+		slog.Info("write-api listening", "port", cfg.Port, "docs", "http://localhost:"+cfg.Port+"/docs")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("listen error", "error", err)
 			os.Exit(1)

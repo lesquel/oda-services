@@ -39,6 +39,7 @@ func main() {
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.SlogRequestLogger)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -55,6 +56,20 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok","service":"gateway"}`))
+	})
+
+	// ── API docs index ──────────────────────────────────────────────────
+	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
+<html><head><title>ODA API Docs</title></head><body style="font-family:system-ui;max-width:600px;margin:80px auto">
+<h1>ODA API Documentation</h1>
+<ul>
+<li><a href="` + cfg.WriteAPIURL + `/docs">Write API (mutations)</a></li>
+<li><a href="` + cfg.ReadAPIURL + `/docs">Read API (queries)</a></li>
+</ul>
+</body></html>`))
 	})
 
 	// ── API routes ──────────────────────────────────────────────────────
