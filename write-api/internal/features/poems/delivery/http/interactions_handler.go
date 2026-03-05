@@ -30,8 +30,7 @@ type TagEmotionInput struct {
 }
 
 type RemoveEmotionInput struct {
-	ID        string `path:"id" format:"uuid" doc:"Poem UUID"`
-	EmotionID string `path:"emotionID" format:"uuid" doc:"Emotion tag UUID"`
+	ID string `path:"id" format:"uuid" doc:"Poem UUID"`
 }
 
 // ── Interaction handlers ────────────────────────────────────────────────────

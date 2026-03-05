@@ -70,7 +70,7 @@ func RegisterPoemRoutes(api huma.API, h *PoemHandler, internalMW, requireUserMW 
 		OperationID:   "remove-emotion-tag",
 		Summary:       "Remove your emotion tag from a poem",
 		Method:        http.MethodDelete,
-		Path:          "/api/poems/{id}/emotions/{emotionID}",
+		Path:          "/api/poems/{id}/emotions",
 		DefaultStatus: http.StatusNoContent,
 		Tags:          []string{"Poems"},
 		Middlewares:   authMW,

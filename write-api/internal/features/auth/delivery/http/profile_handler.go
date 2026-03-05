@@ -20,6 +20,9 @@ type UpdateProfileInput struct {
 		Username  string `json:"username,omitempty" minLength:"3" maxLength:"30" required:"false" doc:"New username"`
 		Bio       string `json:"bio,omitempty" required:"false" doc:"Bio text"`
 		AvatarURL string `json:"avatar_url,omitempty" required:"false" doc:"Avatar URL"`
+		Website   string `json:"website,omitempty" required:"false" doc:"Website URL"`
+		Instagram string `json:"instagram,omitempty" required:"false" doc:"Instagram handle"`
+		Twitter   string `json:"twitter,omitempty" required:"false" doc:"X/Twitter handle"`
 	}
 }
 type UpdateProfileOutput struct {
@@ -50,6 +53,9 @@ func (h *AuthHandler) UpdateProfile(ctx context.Context, input *UpdateProfileInp
 		Username:  input.Body.Username,
 		Bio:       input.Body.Bio,
 		AvatarURL: input.Body.AvatarURL,
+		Website:   input.Body.Website,
+		Instagram: input.Body.Instagram,
+		Twitter:   input.Body.Twitter,
 	}
 	user, err := h.uc.UpdateProfile(userID, req)
 	if err != nil {

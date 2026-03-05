@@ -15,6 +15,9 @@ type User struct {
 	Role         string         `gorm:"default:user" json:"role"`
 	Bio          string         `json:"bio"`
 	AvatarURL    string         `json:"avatar_url"`
+	Website      string         `json:"website"`
+	Instagram    string         `json:"instagram"`
+	Twitter      string         `json:"twitter"`
 	IsActive     bool           `gorm:"default:true" json:"is_active"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
@@ -81,6 +84,9 @@ type UpdateProfileRequest struct {
 	Username  string `json:"username"   validate:"omitempty,min=3,max=30"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
+	Website   string `json:"website"`
+	Instagram string `json:"instagram"`
+	Twitter   string `json:"twitter"`
 }
 
 type ChangePasswordRequest struct {

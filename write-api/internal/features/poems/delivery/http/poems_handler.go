@@ -41,6 +41,7 @@ func (h *PoemHandler) CreatePoem(ctx context.Context, input *CreatePoemInput) (*
 	req := &domain.CreatePoemRequest{
 		Title:   input.Body.Title,
 		Content: input.Body.Content,
+		Status:  input.Body.Status,
 	}
 	poem, err := h.uc.CreatePoem(userID, req)
 	if err != nil {

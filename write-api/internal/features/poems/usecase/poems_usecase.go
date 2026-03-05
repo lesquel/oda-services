@@ -7,11 +7,16 @@ import (
 )
 
 func (uc *poemUseCase) CreatePoem(authorID string, req *domain.CreatePoemRequest) (*domain.Poem, error) {
+	status := "published"
+	if req.Status == "draft" || req.Status == "published" {
+		status = req.Status
+	}
+
 	poem := &domain.Poem{
 		Title:    req.Title,
 		Content:  req.Content,
 		AuthorID: authorID,
-		Status:   "published",
+		Status:   status,
 	}
 	if err := uc.poemRepo.Create(poem); err != nil {
 		return nil, errors.New("failed to create poem")

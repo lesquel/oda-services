@@ -27,12 +27,11 @@ func (uc *authUseCase) UpdateProfile(userID string, req *domain.UpdateProfileReq
 		}
 		user.Username = req.Username
 	}
-	if req.Bio != "" {
-		user.Bio = req.Bio
-	}
-	if req.AvatarURL != "" {
-		user.AvatarURL = req.AvatarURL
-	}
+	user.Bio = req.Bio
+	user.AvatarURL = req.AvatarURL
+	user.Website = req.Website
+	user.Instagram = req.Instagram
+	user.Twitter = req.Twitter
 
 	if err := uc.userRepo.Update(user); err != nil {
 		return nil, errors.New("failed to update profile")
