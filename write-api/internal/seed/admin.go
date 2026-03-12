@@ -28,7 +28,8 @@ func SeedAdmin(db *gorm.DB, adminEmail, adminPassword string) error {
 	var user domain.User
 	result := db.Unscoped().Where("email = ?", adminEmail).First(&user)
 
-	if result.Error == gorm.ErrRecordNotFound {
+	switch result.Error {
+	case gorm.ErrRecordNotFound:
 		admin := &domain.User{
 			ID:           uuid.NewString(),
 			Email:        adminEmail,
@@ -44,14 +45,14 @@ func SeedAdmin(db *gorm.DB, adminEmail, adminPassword string) error {
 			}
 		}
 		log.Printf("✅ Admin user created: %s", adminEmail)
-	} else if result.Error == nil {
+	case nil:
 		db.Model(&user).Updates(map[string]interface{}{
 			"password_hash": hashedPwd,
 			"role":          "admin",
 			"deleted_at":    nil,
 		})
 		log.Printf("✅ Admin user updated: %s (role=admin)", adminEmail)
-	} else {
+	default:
 		log.Printf("⚠️  Admin seed DB error: %v", result.Error)
 	}
 

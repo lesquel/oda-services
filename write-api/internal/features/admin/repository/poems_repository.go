@@ -99,11 +99,7 @@ func (r *adminRepo) GetModerationLogs(poemID string) ([]domain.AdminModerationLo
 	}
 	items := make([]domain.AdminModerationLog, len(logs))
 	for i, l := range logs {
-		items[i] = domain.AdminModerationLog{
-			ID: l.ID, PoemID: l.PoemID, Status: l.Status,
-			Score: l.Score, Reason: l.Reason, Provider: l.Provider,
-			Model: l.Model, Categories: l.Categories, CreatedAt: l.CreatedAt,
-		}
+		items[i] = domain.AdminModerationLog(l)
 	}
 	return items, nil
 }

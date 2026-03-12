@@ -1,0 +1,25 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - unused
+    - misspell
+    - gocritic
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  gocritic:
+    disabled-checks:
+      - elseif
+  misspell:
+    locale: US
+
+issues:
+  exclude-use-default: false
