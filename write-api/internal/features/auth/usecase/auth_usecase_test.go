@@ -167,7 +167,7 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_WrongPassword(t *testing.T) {
 	uc := usecase.NewAuthUseCase(newMockUserRepo(), newMockTokenRepo(), testJWTSecret)
-	uc.Register(&domain.RegisterRequest{
+	_, _ = uc.Register(&domain.RegisterRequest{
 		Username: "user2",
 		Email:    "user2@example.com",
 		Password: "correctpassword",

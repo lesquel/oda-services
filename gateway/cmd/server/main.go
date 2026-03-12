@@ -156,7 +156,7 @@ func proxyDocsPage(client *http.Client, upstreamBaseURL, openapiPath string) htt
 			http.Error(w, `{"error":"failed to fetch docs"}`, http.StatusBadGateway)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -188,7 +188,7 @@ func proxyDocsSpec(client *http.Client, upstreamBaseURL string) http.HandlerFunc
 			http.Error(w, `{"error":"failed to fetch openapi"}`, http.StatusBadGateway)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if contentType := resp.Header.Get("Content-Type"); contentType != "" {
 			w.Header().Set("Content-Type", contentType)

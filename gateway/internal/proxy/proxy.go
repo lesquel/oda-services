@@ -75,7 +75,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var bodyBytes []byte
 	if r.Body != nil && r.Method != http.MethodGet {
 		bodyBytes, _ = io.ReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close() // Best effort close
 	}
 
 	var lastErr error
@@ -120,7 +120,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// 5xx from upstream = retryable for GETs
 		if resp.StatusCode >= 500 && attempt < maxAttempts-1 && r.Method == http.MethodGet {
-			resp.Body.Close()
+			_ = resp.Body.Close() // Best effort close
 			cb.RecordFailure()
 			slog.Warn("proxy: upstream 5xx", "status", resp.StatusCode, "attempt", attempt+1, "target", targetURL)
 			continue
@@ -136,7 +136,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		copyHeaders(resp.Header, w.Header())
 		w.WriteHeader(resp.StatusCode)
 		_, _ = io.Copy(w, resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close() // Best effort close
 		return
 	}
 
